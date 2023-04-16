@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+
+from cryptography.fernet import Fernet
+import colorama, os, getpass, subprocess
+from colorama import Fore, Back, Style
+
+def encrypt(plaintext, key):
+  fernet = Fernet(key)
+  encrypted = fernet.encrypt(plaintext.encode())
+  return encrypted
+
+def decrypt(filename, key):
+    with open(filename, 'rb') as encrypted_file:
+        encrypted = encrypted_file.read()
+    fernet = Fernet(key)
+    return fernet.decrypt(encrypted)
+
+def resetstyle():
+  print(Style.RESET_ALL)
+
+def connect(userip, passw):
+  os.system(f'sshpass -p "{passw}" ssh {userip}')
+
+g = Fore.GREEN
+r = Fore.RED
+y = Fore.YELLOW
+rs = Style.RESET_ALL
+
+# --------------------------------
+optable = {}
+os.system('clear')
+output = subprocess.check_output("echo ~", shell=True)
+output = output.decode("utf-8").strip()
+homepath = f"{output}/sshub"
+print(f'{r}SSHub{rs}')
+
+# Ask for masterpassword
+try:
+  masterpassword = getpass.getpass(prompt='Enter your password: ')
+except KeyboardInterrupt:
+  os.system('clear')
+  exit()
+if masterpassword == "":
+  print(f'{r}Left empty, quitting{rs}')
+  exit()
+masterpassword = masterpassword.encode('utf-8')
+
+num = 1
+for i in os.listdir(f'{homepath}/sshkeys'):
+  print(f"{y}{num}.{rs} {i}")
+  optable[num]=i
+  num += 1
+
+print(f"\n{y}{num}.{rs} Add new host")
+add = num
+num += 1
+print(f"{y}{num}.{rs} Quit")
+quit = num
+
+opt = input(f'{y}[>]{rs} ')
+
+if type(int(opt)) != int:
+  print(f"\nThat's not a valid option\n{r}Quitting now{rs}")
+  exit()
+
+if int(opt) in list(optable.keys()):
+  selection = optable[int(opt)]
+  try:
+    ret = decrypt(f'{homepath}/sshkeys/{selection}', masterpassword)
+  except ValueError:
+    print(f'{r}The password you gave at the start is invalid, quitting{rs}')
+    exit()
+  ret = ret.decode('utf-8')
+  tempvars = ret.split('\n')
+  connect(tempvars[0], tempvars[1])
+
+if int(opt) == add:
+  os.system('clear')
+  print(f'{r}SSHub{rs}')
+  newnames = input('Please nickname this new host:\n')
+  newname = newnames.replace(' ', '\ ')
+  newuserip = input('Please enter a new host in this format:    user@ipaddress\n')
+  newpassw = getpass.getpass(prompt='Enter the host password:\n')
+  newformat = f"{newuserip}\n{newpassw}"
+  try:
+    newencrypted = encrypt(newformat, masterpassword)
+  except ValueError:
+    print(f'{r}The password you gave at the start is invalid, quitting{rs}')
+    exit()
+  os.system(f'touch {homepath}/sshkeys/{newname}')
+  with open(f'{homepath}/sshkeys/{newnames}', 'bw') as f:
+    f.write(newencrypted)
+
+if int(opt) == quit:
+  exit()
+# Clearing all the variables to prevent data exfiltration
+tempvars = None
+newname = None
+newuserip = None
+newpassw = None
+newformat = None
+# Done
