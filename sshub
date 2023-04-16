@@ -36,7 +36,7 @@ print(f'{r}SSHub{rs}')
 
 # Ask for masterpassword
 try:
-  masterpassword = getpass.getpass(prompt='Enter your password: ')
+  masterpassword = getpass.getpass(prompt='Enter your master password: ')
 except KeyboardInterrupt:
   os.system('clear')
   exit()
